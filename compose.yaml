@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: keycloak123
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/initdb:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     healthcheck:
@@ -34,6 +35,22 @@ services:
         condition: service_healthy
     command: start-dev
 
+  spring-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/appdb
+      DB_USERNAME: appuser
+      DB_PASSWORD: secret
+      KC_ISSUER: http://localhost:8080/realms/myrealm
+      KC_JWKS: http://keycloak:8080/realms/myrealm/protocol/openid-connect/certs
+    ports:
+      - "8081:8081"
+    depends_on:
+      - keycloak
+      - postgres
+
   nextjs:
     build:
       context: .
@@ -44,8 +61,10 @@ services:
       NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
       NEXT_PUBLIC_KEYCLOAK_REALM: myrealm
       NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: nextjs-client
+      NEXT_PUBLIC_API_URL: http://localhost:8081
     depends_on:
       - keycloak
+      - spring-api
 
 volumes:
   postgres_data:

@@ -14,6 +14,11 @@ interface TokenData {
 export default function Home() {
   const { keycloak, authenticated, initialized } = useKeycloak();
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
+  const [serverMessage, setServerMessage] = useState('');
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081';
 
   useEffect(() => {
     if (authenticated && keycloak?.token) {
@@ -44,6 +49,42 @@ export default function Home() {
 
   const handleLogout = () => {
     keycloak?.logout();
+  };
+
+  const handleCheck = async () => {
+    if (!keycloak) return;
+
+    setChecking(true);
+    setCheckError(null);
+    setServerMessage('');
+
+    try {
+      await keycloak.updateToken(30); // refresh token if close to expiring
+      const token = keycloak.token;
+
+      if (!token) {
+        throw new Error('Missing access token');
+      }
+
+      const response = await fetch(`${apiBase}/api/hello`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const message = await response.text();
+      setServerMessage(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setCheckError(message);
+    } finally {
+      setChecking(false);
+    }
   };
 
   return (
@@ -79,6 +120,22 @@ export default function Home() {
               >
                 Logout
               </button>
+            </div>
+
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={handleCheck}
+                disabled={checking}
+                className={`px-6 py-3 rounded-lg text-white transition ${checking ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'}`}
+              >
+                {checking ? 'Checking...' : 'Check'}
+              </button>
+              {serverMessage && (
+                <span className="text-green-700 font-semibold">{serverMessage}</span>
+              )}
+              {checkError && (
+                <span className="text-red-700">{checkError}</span>
+              )}
             </div>
             
             {tokenData && (

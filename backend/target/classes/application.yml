@@ -1,0 +1,25 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/appdb}
+    username: ${DB_USERNAME:appuser}
+    password: ${DB_PASSWORD:secret}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KC_ISSUER:http://keycloak:8080/realms/myrealm}
+          jwk-set-uri: ${KC_JWKS:http://keycloak:8080/realms/myrealm/protocol/openid-connect/certs}
+
+logging:
+  level:
+    org.springframework.security: INFO

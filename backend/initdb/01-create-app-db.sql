@@ -1,0 +1,3 @@
+CREATE USER appuser WITH PASSWORD 'secret';
+CREATE DATABASE appdb OWNER appuser;
+GRANT ALL PRIVILEGES ON DATABASE appdb TO appuser;
